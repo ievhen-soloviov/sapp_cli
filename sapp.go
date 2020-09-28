@@ -36,10 +36,23 @@ func init() {
 	}
 }
 
+func main() {
+	commando.SetExecutableName("sapp").
+		SetVersion("1.0.0").
+		SetDescription("This tool lists the available Sapp API's.")
+
+	commando.
+		Register("api").
+		SetAction(getApis)
+
+	commando.Parse(nil)
+}
+
 func getApis(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 	token, exists := os.LookupEnv("GITLAB_TOKEN")
 	if exists == false {
 		fmt.Println("[ERROR] Gitlab token not found.")
+		return
 	}
 
 	resp, err := http.Get("https://gitlab.com/api/v4/projects/" + projectID + "/environments?private_token=" + token)
@@ -67,7 +80,7 @@ func getApis(args map[string]commando.ArgValue, flags map[string]commando.FlagVa
 	}
 
 	prompt := promptui.Select{
-		Label:     "Select an API:",
+		Label:     "Select an API",
 		Items:     urlList,
 		Size:      len(urlList),
 		IsVimMode: false,
@@ -97,17 +110,5 @@ func getApis(args map[string]commando.ArgValue, flags map[string]commando.FlagVa
 		return
 	}
 
-	fmt.Println("Done.")
-}
-
-func main() {
-	commando.SetExecutableName("sapp").
-		SetVersion("1.0.0").
-		SetDescription("This tool lists the available Sapp API's.")
-
-	commando.
-		Register("api").
-		SetAction(getApis)
-
-	commando.Parse(nil)
+	fmt.Printf("[SUCCESS] API URL set to: %s", result)
 }
