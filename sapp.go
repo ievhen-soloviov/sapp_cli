@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 
-	"github.com/joho/godotenv"
 	"github.com/manifoldco/promptui"
 	"github.com/thatisuday/commando"
 )
@@ -20,20 +18,11 @@ type apiEnvironment struct {
 type apiResponse []*apiEnvironment
 
 var projectID = "21001347"
-var token string
+var token = "cZkc7ixb68xifSyDVV_d"
 var file []byte
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("[ERROR] Cannot read .env file.")
-	}
 
-	file, err = ioutil.ReadFile("./.env")
-	if err != nil {
-		fmt.Println("[ERROR] Cannot read .env file.")
-		return
-	}
 }
 
 func main() {
@@ -49,12 +38,6 @@ func main() {
 }
 
 func getApis(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
-	token, exists := os.LookupEnv("GITLAB_TOKEN")
-	if exists == false {
-		fmt.Println("[ERROR] Gitlab token not found.")
-		return
-	}
-
 	resp, err := http.Get("https://gitlab.com/api/v4/projects/" + projectID + "/environments?private_token=" + token)
 	if err != nil {
 		fmt.Println("[ERROR] Can't connect.")
@@ -80,16 +63,20 @@ func getApis(args map[string]commando.ArgValue, flags map[string]commando.FlagVa
 	}
 
 	prompt := promptui.Select{
-		Label:     "Select an API",
-		Items:     urlList,
-		Size:      len(urlList),
-		IsVimMode: false,
-		Keys:      &promptui.SelectKeys{},
+		Label: "Select an API",
+		Items: urlList,
+		Size:  len(urlList),
 	}
 
 	_, result, err := prompt.Run()
 	if err != nil {
 		fmt.Println("Cancelled.")
+		return
+	}
+
+	file, err = ioutil.ReadFile("./.env")
+	if err != nil {
+		fmt.Println("[ERROR] Cannot read .env file.")
 		return
 	}
 
