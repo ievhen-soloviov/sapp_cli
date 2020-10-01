@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/manifoldco/promptui"
@@ -18,12 +19,6 @@ type apiEnvironment struct {
 type apiResponse []*apiEnvironment
 
 var projectID = "21001347"
-var token = "cZkc7ixb68xifSyDVV_d"
-var file []byte
-
-func init() {
-
-}
 
 func main() {
 	commando.SetExecutableName("sapp").
@@ -38,6 +33,11 @@ func main() {
 }
 
 func getApis(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+	token, exists := os.LookupEnv("GITLAB_TOKEN")
+	if exists == false {
+		fmt.Println("[ERROR] Gitlab token not found.")
+	}
+
 	resp, err := http.Get("https://gitlab.com/api/v4/projects/" + projectID + "/environments?private_token=" + token)
 	if err != nil {
 		fmt.Println("[ERROR] Can't connect.")
@@ -74,7 +74,7 @@ func getApis(args map[string]commando.ArgValue, flags map[string]commando.FlagVa
 		return
 	}
 
-	file, err = ioutil.ReadFile("./.env")
+	file, err := ioutil.ReadFile("./.env")
 	if err != nil {
 		fmt.Println("[ERROR] Cannot read .env file.")
 		return
