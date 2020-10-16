@@ -26,32 +26,32 @@ type configFile struct {
 }
 
 var projectID = "21001347"
-var token string
+//var token string
 var fileMode os.FileMode = 0644
 
-func getToken() (string, error) {
+func getToken() (localToken string, err error) {
 	localToken, exists := os.LookupEnv("GITLAB_TOKEN")
 	if exists == true {
-		return localToken, nil
+		return
 	}
 
 	exePath, err := os.Executable()
 	if err != nil {
 		err = errors.New("[ERROR] Could not find executable")
-		return "", err
+		return
 	}
 
 	data, err := ioutil.ReadFile(path.Join(filepath.Dir(exePath), "config.json"))
 	if err != nil {
 		err = errors.New("[ERROR] Could not read config file. Please run 'sapp config'")
-		return "", err
+		return
 	}
 
 	decoded := configFile{}
 	err = json.Unmarshal(data, &decoded)
 	if err != nil {
 		err = errors.New("[ERROR] Could not decode data")
-		return "", err
+		return
 	}
 	return decoded.GitlabToken, nil
 }
@@ -154,7 +154,6 @@ func config(_ map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
 		fmt.Println("[ERROR] Could not read response.")
 		return
 	}
-	token = result
 
 	config := configFile{
 		GitlabToken: result,

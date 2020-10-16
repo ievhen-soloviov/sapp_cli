@@ -1,0 +1,20 @@
+{
+  "name": "sapp_cli",
+  "version": "0.1.0",
+  "description": "ScholarshipApp command line tool",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ievhen-soloviov/sapp_cli.git"
+  },
+  "author": "Eugene Soloviov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ievhen-soloviov/sapp_cli/issues"
+  },
+  "homepage": "https://github.com/ievhen-soloviov/sapp_cli#readme",
+  "bin": "sapp.exe"
+}
