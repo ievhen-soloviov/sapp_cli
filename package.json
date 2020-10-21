@@ -1,5 +1,5 @@
 {
-  "name": "sapp_cli",
+  "name": "sapp",
   "version": "0.1.0",
   "description": "ScholarshipApp command line tool",
   "main": "index.js",
