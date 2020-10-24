@@ -91,9 +91,6 @@ func api(args map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
 
 	action := args["action"].Value
 	switch action {
-	case "":
-		fmt.Println("Please enter an argument: 'get' of 'set'")
-		return
 	case "get":
 		for _, url := range list {
 			fmt.Println(url)
