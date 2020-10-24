@@ -2,7 +2,7 @@
 
 Use `sapp config` to enter your Gitlab token (you can get it at Gitlab account settings https://gitlab.com/profile/personal_access_tokens)
 
-##API environments
+## API environments
 
 Use `sapp api get` to display the list of all active environments.
 
