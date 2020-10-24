@@ -4,15 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/manifoldco/promptui"
+	"github.com/thatisuday/commando"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-
-	"github.com/manifoldco/promptui"
-	"github.com/thatisuday/commando"
 )
 
 type apiEnvironment struct {
@@ -53,7 +52,9 @@ func getToken() (localToken string, err error) {
 		err = errors.New("[ERROR] Could not decode data")
 		return
 	}
-	return decoded.GitlabToken, nil
+	localToken = decoded.GitlabToken
+
+	return
 }
 
 func main() {
@@ -63,7 +64,11 @@ func main() {
 
 	commando.
 		Register("api").
-		SetAction(getApis)
+		AddArgument(
+			"action",
+			"You can either 'get' or 'set' environments.",
+			"get").
+		SetAction(api)
 
 	commando.
 		Register("config").
@@ -72,56 +77,48 @@ func main() {
 	commando.Parse(nil)
 }
 
-func getApis(_ map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
+func api(args map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
 	token, err := getToken()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	resp, err := http.Get("https://gitlab.com/api/v4/projects/" + projectID + "/environments?private_token=" + token + "&states=available")
+	list, err := getURLs(projectID, token)
 	if err != nil {
-		fmt.Println("[ERROR] Can't connect.")
-		return
+		fmt.Println(err)
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("[ERROR] Can't read response.")
+	action := args["action"].Value
+	switch action {
+	case "":
+		fmt.Println("Please enter an argument: 'get' of 'set'")
 		return
-	}
-
-	err = resp.Body.Close()
-	if err != nil {
-		fmt.Println("[ERROR] Could not close response.")
-		return
-	}
-
-	var decoded apiResponse
-	var urlList []string
-
-	err = json.Unmarshal(data, &decoded)
-	for _, a := range decoded {
-		if a.URL != "" {
-			urlList = append(urlList, a.URL)
+	case "get":
+		for _, url := range list {
+			fmt.Println(url)
 		}
+	case "set":
+		set(list)
 	}
+}
 
+func set(list []string) {
 	prompt := promptui.Select{
 		Label: "Select an API",
-		Items: urlList,
-		Size:  len(urlList),
+		Items: list,
+		Size:  len(list),
 	}
 
 	_, result, err := prompt.Run()
 	if err != nil {
-		fmt.Println("Cancelled.")
+		fmt.Println("Cancelled")
 		return
 	}
 
 	file, err := ioutil.ReadFile("./.env")
 	if err != nil {
-		fmt.Println("[ERROR] Cannot read .env file.")
+		fmt.Println("[ERROR] Cannot read .env file")
 		return
 	}
 
@@ -138,7 +135,7 @@ func getApis(_ map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
 	output := strings.Join(lines, "\n")
 	err = ioutil.WriteFile("./.env", []byte(output), fileMode)
 	if err != nil {
-		fmt.Println("[ERROR] Cannot write file.")
+		fmt.Println("[ERROR] Cannot write file")
 		return
 	}
 
@@ -151,7 +148,7 @@ func config(_ map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
 	}
 	result, err := prompt.Run()
 	if err != nil {
-		fmt.Println("[ERROR] Could not read response.")
+		fmt.Println("[ERROR] Could not read response")
 		return
 	}
 
@@ -162,12 +159,46 @@ func config(_ map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
 
 	exePath, err := os.Executable()
 	if err != nil {
-		fmt.Println("[ERROR] Could not find executable.")
+		fmt.Println("[ERROR] Could not find executable")
 		return
 	}
 	err = ioutil.WriteFile(filepath.Join(filepath.Dir(exePath), "config.json"), encoded, fileMode)
 	if err != nil {
-		fmt.Println("[ERROR] Could not write to config file.")
+		fmt.Println("[ERROR] Could not write to config file")
 		return
 	}
+}
+
+func getURLs(projectID, token string) (urlList []string, err error) {
+	resp, err := http.Get("https://gitlab.com/api/v4/projects/" + projectID + "/environments?private_token=" + token + "&states=available")
+	if err != nil {
+		err = errors.New("[ERROR] Can't connect")
+		return
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		err = errors.New("[ERROR] Can't read response")
+		return
+	}
+
+	err = resp.Body.Close()
+	if err != nil {
+		err = errors.New("[ERROR] Could not close response")
+		return
+	}
+
+	var decoded apiResponse
+
+	err = json.Unmarshal(data, &decoded)
+	for _, a := range decoded {
+		if a.URL != "" {
+			urlList = append(urlList, a.URL)
+		}
+	}
+	if len(urlList) < 1 {
+		err = errors.New("[ERROR] No environments found in this project")
+	}
+
+	return
 }
