@@ -16,5 +16,14 @@
     "url": "https://github.com/ievhen-soloviov/sapp_cli/issues"
   },
   "homepage": "https://github.com/ievhen-soloviov/sapp_cli#readme",
-  "bin": "sapp.exe"
+  "dependencies": {
+    "go-npm": "^0.1.9"
+  },
+  "postinstall": "go-npm install",
+  "preuninstall": "go-npm uninstall",
+  "goBinary": {
+    "name": "command-name",
+    "path": "./bin",
+    "url": "https://github.com/ievhen-soloviov/sapp_cli/archive/v0.2.tar.gz"
+  }
 }
