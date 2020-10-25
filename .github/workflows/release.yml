@@ -24,11 +24,12 @@ jobs:
         with:
           version: latest
           args: release --rm-dist
-        builds:
-          - binary: drum-roll
-            goos:
-              - windows
-              - darwin
-              - linux
-            goarch:
-              - amd64
+
+builds:
+  - binary: drum-roll
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
