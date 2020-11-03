@@ -1,0 +1,6 @@
+builds:
+  - binary: sapp
+    goos:
+      - windows
+      - darwin
+      - linux
