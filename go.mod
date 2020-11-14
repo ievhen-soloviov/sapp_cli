@@ -1,4 +1,4 @@
-module github.com/ievhen-soloviov/sapp
+module github.com/ievhen-soloviov/sapp_cli
 
 go 1.15
 
