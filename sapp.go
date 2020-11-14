@@ -4,60 +4,69 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/manifoldco/promptui"
-	"github.com/thatisuday/commando"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
+
+	"github.com/manifoldco/promptui"
+	"github.com/thatisuday/commando"
 )
 
 type apiEnvironment struct {
-	URL   string `json:"external_url"`
+	URL string `json:"external_url"`
 }
 
 type apiResponse []*apiEnvironment
 
-type configFile struct {
+type configFileType struct {
 	GitlabToken string `json:"token"`
+	ProjectID   string `json:"projectID"`
+
+	// list of env vars to search for
+	Vars []string `json:"vars"`
 }
 
-var projectID = "21001347"
-//var token string
+var configFile configFileType
+
+var defaultConfig = configFileType{
+	ProjectID: "21001347",
+	Vars:      []string{"APP_API_URL", "SAPP_URL"},
+}
+
 var fileMode os.FileMode = 0644
 
-func getToken() (localToken string, err error) {
-	localToken, exists := os.LookupEnv("GITLAB_TOKEN")
-	if exists == true {
-		return
-	}
-
+func main() {
 	exePath, err := os.Executable()
 	if err != nil {
-		err = errors.New("[ERROR] Could not find executable")
+		fmt.Println("[ERROR] Could not find executable")
 		return
 	}
 
 	data, err := ioutil.ReadFile(path.Join(filepath.Dir(exePath), "config.json"))
 	if err != nil {
-		err = errors.New("[ERROR] Could not read config file. Please run 'sapp config'")
+		// no config file found, create one with default values
+		newConfig := configFileType{
+			ProjectID: defaultConfig.ProjectID,
+			Vars:      defaultConfig.Vars,
+		}
+		err = writeConfigFile(newConfig)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("[ERROR] New config file created. Please run 'sapp config token'")
 		return
 	}
 
-	decoded := configFile{}
-	err = json.Unmarshal(data, &decoded)
+	err = json.Unmarshal(data, &configFile)
 	if err != nil {
-		err = errors.New("[ERROR] Could not decode data")
+		fmt.Println("[ERROR] Could not decode data")
 		return
 	}
-	localToken = decoded.GitlabToken
 
-	return
-}
-
-func main() {
 	commando.SetExecutableName("sapp").
 		SetVersion("1.0.0").
 		SetDescription("This tool lists the available Sapp API's.")
@@ -72,19 +81,17 @@ func main() {
 
 	commando.
 		Register("config").
+		AddArgument(
+			"setting",
+			"This parameter specifies, which setting is to be configured",
+			"").
 		SetAction(config)
 
 	commando.Parse(nil)
 }
 
 func api(args map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
-	token, err := getToken()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	list, err := getURLs(projectID, token)
+	list, err := getURLs(configFile.ProjectID, configFile.GitlabToken)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -121,8 +128,14 @@ func set(list []string) {
 
 	lines := strings.Split(string(file), "\n")
 
+	expression := "(" + strings.Join(configFile.Vars, ")|(") + ")"
+
 	for i, line := range lines {
-		if strings.HasPrefix(line, "APP_API_URL") || strings.HasPrefix(line, "SAPP_URL") {
+		matches, err := regexp.MatchString(expression, line)
+		if err != nil {
+			fmt.Println("[ERROR] Could not find variable in .env file")
+		}
+		if matches {
 			chunks := strings.Split(line, "=")
 			chunks[1] = result
 			lines[i] = strings.Join(chunks, "=")
@@ -139,34 +152,87 @@ func set(list []string) {
 	fmt.Printf("[SUCCESS] API URL set to: %s", result)
 }
 
-func config(_ map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
-	prompt := promptui.Prompt{
-		Label: "Please enter your Gitlab token",
-	}
-	result, err := prompt.Run()
-	if err != nil {
-		fmt.Println("[ERROR] Could not read response")
-		return
+func config(args map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
+	setting := args["setting"].Value
+	switch setting {
+	case "token":
+		prompt := promptui.Prompt{
+			Label: "Please enter your Gitlab token",
+		}
+		result, err := prompt.Run()
+		if err != nil {
+			fmt.Println("[ERROR] Could not read response")
+			return
+		}
+		configFile.GitlabToken = result
+		err = writeConfigFile(configFile)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+	case "project":
+		prompt := promptui.Prompt{
+			Label: "Please enter your Gitlab project ID",
+		}
+		result, err := prompt.Run()
+		if err != nil {
+			fmt.Println("[ERROR] Could not read response")
+			return
+		}
+		configFile.ProjectID = result
+		err = writeConfigFile(configFile)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+	case "vars":
+		prompt := promptui.Prompt{
+			Label: "Please enter the list of possible variable names, separated by spaces",
+		}
+		result, err := prompt.Run()
+		if err != nil {
+			fmt.Println("[ERROR] Could not read response")
+			return
+		}
+		configFile.Vars = strings.Split(result, " ")
+		err = writeConfigFile(configFile)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+	case "reset":
+		err := writeConfigFile(defaultConfig)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("[SUCCESS] Config has been reset to default values")
 	}
 
-	config := configFile{
-		GitlabToken: result,
-	}
-	encoded, err := json.Marshal(config)
+}
+
+// create/edit a config file in the executable directory
+func writeConfigFile(data configFileType) (err error) {
+	encoded, err := json.Marshal(data)
 
 	exePath, err := os.Executable()
 	if err != nil {
-		fmt.Println("[ERROR] Could not find executable")
+		err = errors.New("[ERROR] Could not find executable")
 		return
 	}
 	err = ioutil.WriteFile(filepath.Join(filepath.Dir(exePath), "config.json"), encoded, fileMode)
 	if err != nil {
-		fmt.Println("[ERROR] Could not write to config file")
+		err = errors.New("[ERROR] Could not write to config file")
 		return
 	}
+	return
 }
 
 func getURLs(projectID, token string) (urlList []string, err error) {
+	if configFile.GitlabToken == "" {
+		fmt.Println("[ERROR] GitLab token not found. Please run 'sapp config token'")
+		return
+	}
+
 	resp, err := http.Get("https://gitlab.com/api/v4/projects/" + projectID + "/environments?private_token=" + token + "&states=available")
 	if err != nil {
 		err = errors.New("[ERROR] Can't connect")
