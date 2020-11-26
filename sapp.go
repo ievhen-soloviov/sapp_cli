@@ -57,7 +57,7 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Println("[ERROR] New config file created. Please run 'sapp config token'")
+		fmt.Println("[ERROR] New config file created. Please run 'sapp_cli config token'")
 		return
 	}
 
