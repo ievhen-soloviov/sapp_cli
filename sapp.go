@@ -28,6 +28,9 @@ type configFileType struct {
 
 	// list of env vars to search for
 	Vars []string `json:"vars"`
+
+	// custom urls
+	URLs []string `json:"urls"`
 }
 
 var configFile configFileType
@@ -37,7 +40,9 @@ var defaultConfig = configFileType{
 	Vars:      []string{"APP_API_URL", "SAPP_URL"},
 }
 
-var fileMode os.FileMode = 0644
+const configFileName = "sapp_cli.config.json"
+
+const fileMode os.FileMode = 0644
 
 func main() {
 	exePath, err := os.Executable()
@@ -46,7 +51,7 @@ func main() {
 		return
 	}
 
-	data, err := ioutil.ReadFile(path.Join(filepath.Dir(exePath), "config.json"))
+	data, err := ioutil.ReadFile(path.Join(filepath.Dir(exePath), configFileName))
 	if err != nil {
 		// no config file found, create one with default values
 		newConfig := configFileType{
@@ -207,7 +212,6 @@ func config(args map[string]commando.ArgValue, _ map[string]commando.FlagValue) 
 		}
 		fmt.Println("[SUCCESS] Config has been reset to default values")
 	}
-
 }
 
 // create/edit a config file in the executable directory
@@ -219,7 +223,7 @@ func writeConfigFile(data configFileType) (err error) {
 		err = errors.New("[ERROR] Could not find executable")
 		return
 	}
-	err = ioutil.WriteFile(filepath.Join(filepath.Dir(exePath), "config.json"), encoded, fileMode)
+	err = ioutil.WriteFile(filepath.Join(filepath.Dir(exePath), configFileName), encoded, fileMode)
 	if err != nil {
 		err = errors.New("[ERROR] Could not write to config file")
 		return
@@ -258,6 +262,9 @@ func getURLs(projectID, token string) (urlList []string, err error) {
 		if a.URL != "" {
 			urlList = append(urlList, a.URL)
 		}
+	}
+	if len(configFile.URLs) >= 1 {
+		urlList = append(urlList, configFile.URLs...)
 	}
 	if len(urlList) < 1 {
 		err = errors.New("[ERROR] No environments found in this project")

@@ -8,11 +8,21 @@ At first launch, a json config file with default configurations is created in th
 
 `sapp_cli config project`: enter your GitLab project ID (default: ScholarshipApp API ID)
 
-`sapp_cli config vars`: enter a list of possible variable names to search for in .env files (separated by spaces). Default: `APP_API_URL SAPP_URL`
+`sapp_cli config vars`: enter a list of possible variable names to search for in .env files (separated by spaces). Default: `APP_API_URL`, `SAPP_URL`
 
 `sapp_cli config reset`: brings back default values.
 
-## API environments
+## Config File
+
+`token`: your GitLab token
+
+`projectID`
+
+`vars`
+
+`urls`: - a list of custom API URLs
+
+## API URL actions
 
 Use `sapp_cli api get` to display the list of all active environments.
 
