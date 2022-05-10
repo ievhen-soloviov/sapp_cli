@@ -1,3 +1,4 @@
 .env
 /.idea
 .goreleaser.yaml
+/dist

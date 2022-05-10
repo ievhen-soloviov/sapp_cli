@@ -1,5 +1,11 @@
 # ScholarshipApp command line tool
 
+## Install
+
+`go install github.com/ievhen-soloviov/sapp_cli@v0.1.4`
+
+Check that `$GOPATH/bin` is included in your PATH
+
 ## Configuration
 
 At first launch, a json config file with default configurations is created in the executable directory. Token has no default value.
